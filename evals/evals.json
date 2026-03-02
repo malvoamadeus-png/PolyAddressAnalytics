@@ -1,0 +1,58 @@
+[
+  {
+    "id": "single_address_basic",
+    "prompt": "Get metrics for wallet 0x1234567890abcdef1234567890abcdef12345678",
+    "expected_output": "Returns all 8 metrics (ROI, Sharpe, Profit Factor, Max Drawdown, Win Rate, Position Size CV, HHI, Current Position Value)",
+    "assertions": [
+      "Output contains 'roi' field",
+      "Output contains 'sharpe_ratio' field",
+      "Output contains 'profit_factor' field",
+      "Output contains 'max_drawdown' field",
+      "Output contains 'win_rate' field",
+      "Output contains 'position_size_cv' field",
+      "Output contains 'hhi' field",
+      "Output contains 'current_position_value_usd' field",
+      "Output contains 'total_pnl' in summary",
+      "Output contains 'total_trades' count"
+    ]
+  },
+  {
+    "id": "address_not_found",
+    "prompt": "Get metrics for 0x0000000000000000000000000000000000000000",
+    "expected_output": "Reports no trading history found",
+    "assertions": [
+      "Output mentions 'no trading history' or 'no trades found' or '未找到交易历史'",
+      "Does not crash or throw unhandled error"
+    ]
+  },
+  {
+    "id": "low_trade_count_warning",
+    "prompt": "Get metrics for a wallet with only 5 trades",
+    "expected_output": "Returns metrics but warns about statistical significance",
+    "assertions": [
+      "Output contains warning about low trade count or '交易数量较少'",
+      "Metrics are still computed and returned",
+      "data_quality.warning field is not null"
+    ]
+  },
+  {
+    "id": "partial_metrics_missing",
+    "prompt": "Get metrics for a wallet with no PnL time series data",
+    "expected_output": "Returns available metrics, null for Sharpe/Max Drawdown",
+    "assertions": [
+      "sharpe_ratio is null or missing",
+      "max_drawdown is null or missing",
+      "Other metrics (ROI, Profit Factor, Win Rate) are still computed"
+    ]
+  },
+  {
+    "id": "real_address_test",
+    "prompt": "Get metrics for wallet 0x2f67d0c9e1c6e8e5a5f5e5e5e5e5e5e5e5e5e5e5",
+    "expected_output": "Returns metrics or reports no trading history (depends on actual data)",
+    "assertions": [
+      "Script completes without error",
+      "Output is valid JSON",
+      "Contains either metrics data or 'no trading history' message"
+    ]
+  }
+]
