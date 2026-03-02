@@ -1,18 +1,21 @@
 # Implementation Notes
 
-## Architecture Decision
+## Architecture Decision (Updated)
 
-This skill is **self-contained** and does not import code from the root codebase. Instead, it:
+This skill is **completely self-contained** with all logic embedded directly in the script.
 
-1. **Calls `polymarket_metrics.py` as a subprocess** with a temporary SQLite database
-2. **Reads the results** from the temporary database
-3. **Formats the output** as JSON with 8 core metrics
+**Previous approach (deprecated):**
+- ❌ Called `polymarket_metrics.py` as subprocess
+- ❌ Required root project files
+- ❌ Not portable
 
-This approach ensures:
-- ✅ **Skill independence** - No Python imports from root code
-- ✅ **Code reuse** - Leverages battle-tested metric computation logic
-- ✅ **Maintainability** - No duplicate code to keep in sync
-- ✅ **Portability** - Skill can be moved/shared independently
+**Current approach:**
+- ✅ **Fully portable** - Works anywhere Python + requests available
+- ✅ **No external dependencies** - All code in skill folder
+- ✅ **No subprocess calls** - Direct API interaction
+- ✅ **No database** - Direct computation and output
+
+**Trade-off:** ~500 lines of code duplicated from `polymarket_metrics.py`, but ensures true portability.
 
 ## How It Works
 
@@ -23,35 +26,47 @@ Claude invokes wallet-metrics skill
     ↓
 compute_wallet_metrics.py
     ↓
-subprocess: python polymarket_metrics.py --address 0x... --db /tmp/xxx.sqlite
+Direct API calls to Polymarket
     ↓
-Read metrics from SQLite
+Compute all 8 metrics in-memory
     ↓
-Format as JSON with 8 metrics
+Format as JSON
     ↓
 Return to user
 ```
 
-## Metrics Extracted
+## Metrics Computed
 
-The script reads from the `address_metrics` table and extracts:
+All metrics are computed directly by embedded functions:
 
-1. **roi** - From `roi` column
-2. **sharpe_ratio** - From `sharpe` column
-3. **profit_factor** - From `profit_factor` column
-4. **max_drawdown** - From `max_drawdown` column
-5. **win_rate** - From `win_rate` column
-6. **position_size_cv** - From `position_size_cv` column
-7. **hhi** - From `hhi` column
-8. **current_position_value_usd** - From `current_position_value_usd` column
+1. **roi** - Total PnL / Cost Basis
+2. **sharpe_ratio** - Risk-adjusted returns from PnL series
+3. **profit_factor** - Gross profit / Gross loss (per-market aggregation)
+4. **max_drawdown** - Peak-to-trough decline in PnL series
+5. **win_rate** - Winning positions / Total positions
+6. **position_size_cv** - StdDev / Mean of buy amounts
+7. **hhi** - Market concentration (Σ(share_i)²)
+8. **current_position_value_usd** - Sum of open position values
 
-All metrics are computed by the root `polymarket_metrics.py` script.
+## Embedded Functions
+
+Copied from `polymarket_metrics.py`:
+- API constants and `_RateLimiter` class
+- `http_get_json()` with retry logic
+- `fetch_positions()`, `fetch_closed_positions()`, `fetch_user_pnl_series()`
+- `extract_position_fields()` for parsing position data
+- `compute_metrics_snapshot()` for ROI and Profit Factor
+- `compute_pnl_drawdown_sharpe()` for Sharpe and Max Drawdown
+- `compute_position_based_stats()` for Win Rate
+- `compute_position_size_cv()` for Position Size CV
+- `compute_hhi()` for Market concentration
 
 ## Dependencies
 
 - Python 3.7+
-- `requests` library (used by root script)
-- Root `polymarket_metrics.py` must exist
+- `requests` library only
+
+**No root project files required.**
 
 ## Execution Time
 
@@ -62,12 +77,19 @@ All metrics are computed by the root `polymarket_metrics.py` script.
 
 ```bash
 # Test with null address (should report no trading history)
-python .trae/skills/wallet-metrics/scripts/compute_wallet_metrics.py \
+python skills/wallet-metrics/scripts/compute_wallet_metrics.py \
   --address 0x0000000000000000000000000000000000000000 \
   --output /tmp/test.json
 
 # Test with real address
-python .trae/skills/wallet-metrics/scripts/compute_wallet_metrics.py \
-  --address 0x<real_address> \
+python skills/wallet-metrics/scripts/compute_wallet_metrics.py \
+  --address 0x6d3c5bd13984b2de47c3a88ddc455309aab3d294 \
   --output /tmp/test.json
+
+# Portability test - copy to different directory
+cd /tmp
+cp -r /path/to/skills/wallet-metrics ./
+cd wallet-metrics
+pip install -r scripts/requirements.txt
+python scripts/compute_wallet_metrics.py --address 0x6d3c5bd13984b2de47c3a88ddc455309aab3d294 --output out.json
 ```

@@ -140,7 +140,8 @@ pip install -r scripts/requirements.txt
 
 依赖项：
 - `requests>=2.28.0`
-- `python-dateutil>=2.8.2`
+
+**无需 PolySport 项目文件** — 此技能完全独立，可在任何环境运行。
 
 ## 文件结构
 
@@ -161,17 +162,17 @@ pip install -r scripts/requirements.txt
 
 ## 技术细节
 
-脚本复用根目录 `polymarket_metrics.py` 的核心函数：
+脚本直接调用 Polymarket API 并内嵌所有计算逻辑：
 - `fetch_positions()` — 获取开仓持仓
 - `fetch_closed_positions()` — 获取已平仓持仓
 - `fetch_user_pnl_series()` — 获取 PnL 时间序列
 - `compute_metrics_snapshot()` — 计算 Profit Factor 和 ROI
 - `compute_pnl_drawdown_sharpe()` — 计算 Max Drawdown 和 Sharpe Ratio
 - `compute_position_based_stats()` — 计算 Win Rate
-
-额外实现：
 - `compute_position_size_cv()` — 计算仓位规模变异系数
 - `compute_hhi()` — 计算市场集中度指数
+
+**完全独立** — 所有逻辑内嵌在 `compute_wallet_metrics.py` 中，无外部依赖。
 
 ## 错误处理
 
