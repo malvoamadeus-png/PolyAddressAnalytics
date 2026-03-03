@@ -242,6 +242,9 @@ def extract_position_fields(row: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             break
 
     realized_pnl = _as_float(row.get("realizedPnl") or row.get("realized_pnl"))
+    # 回退：已平仓position可能没有cashPnl，用realizedPnl替代
+    if cash_pnl is None and realized_pnl is not None:
+        cash_pnl = realized_pnl
     cur_price = _as_float(row.get("curPrice") or row.get("cur_price"))
     closed = bool(row.get("redeemed") or row.get("closed") or (row.get("redeemable") is True and row.get("size") in (0, "0", 0.0)))
 
