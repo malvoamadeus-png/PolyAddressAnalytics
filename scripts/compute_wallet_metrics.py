@@ -541,8 +541,13 @@ def main():
             "current_position_value_usd": position_stats.get("current_position_value_usd")
         }
 
+        # 使用盈利曲线最新值替代total_pnl
+        final_pnl = metrics_data.get("total_pnl")
+        if pnl_series and len(pnl_series) > 0:
+            final_pnl = pnl_series[-1][1]  # 取最后一个点的PnL值
+
         summary = {
-            "total_pnl": metrics_data.get("total_pnl"),
+            "total_pnl": final_pnl,
             "total_trades": position_stats.get("total_trades"),
             "winning_trades": position_stats.get("winning_trades"),
             "losing_trades": position_stats.get("losing_trades")
